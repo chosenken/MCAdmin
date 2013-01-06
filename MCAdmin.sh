@@ -8,6 +8,8 @@ SETTINGS='.mcadmin'
 GIT_SETTINGS='.mcadmin.git'
 MC_JAR='minecraft_server.jar'
 JAR_URL='https://s3.amazonaws.com/MinecraftDownload/launcher/minecraft_server.jar'
+SNAPSHOT_URL='https://raw.github.com/chosenken/MCAdmin/master/snapshotURL.sh'
+SS_URL_FILE='snapshotURL.sh'
 # ------ Variables -----
 GIT_INSTALLED=0
 GIT_DIR=0
@@ -18,18 +20,18 @@ USE_GIT=0
 
 # Creates the settings file with default settings
 makeSettings () {
-	echo 'DEBUG=0
-LOGFILE="MCAdmin.log"
+	echo "DEBUG=0
+LOGFILE='MCAdmin.log'
 USE_SNAPSHOTS=0
-USE_GIT=0' > $SETTINGS
+USE_GIT=0" > $SETTINGS
 }
 
 # Update the settings file
 updateSettings() {
-	echo 'DEBUG=0
-LOGFILE="MCAdmin.log"
+	echo "DEBUG=0
+LOGFILE='MCAdmin.log'
 USE_SNAPSHOTS=$USE_SNAPSHOTS
-USE_GIT=$USE_GIT' > $SETTINGS
+USE_GIT=$USE_GIT" > $SETTINGS
 }
 
 # Creates the GIT settings file with default settings
@@ -58,7 +60,7 @@ log () {
 		NOW=`date "+%m-%d-%Y %H:%M:%S"`
 		echo $NOW "$LEVEL - $2" >> $LOGFILE
 	else
-		log 'ERROR' 'Incorrect usage of log; "$LEVEL" "$2"'
+		log "ERROR" "Incorrect usage of log; $LEVEL $2"
 	fi
 }
 
@@ -125,21 +127,64 @@ initGit() {
 	fi
 }
 
-# Downloads the latest Minecraft Server JAR
+# Downloads the server JAR
 downloadJar() {
+	if [ $USE_SNAPSHOTS -eq 1 ]; then
+		downloadSnapshotJar
+	else
+		downloadMainJar
+	fi
+}
+
+# Downloads the latest Minecraft Server JAR
+downloadMainJar() {
 	log "INFO" "Downloading the latest Minecraft Server Jar"
 	checkCurlInstalled
 	if [ $CURL_INSTALLED -eq 1 ]; then
-		CURL_LOG='curl -O $JAR_URL'
-		log "INFO" "&CURL_LOG"
-	else if [ $WGET_INSTALLED -eq 1 ]; then
-		WGET_LOG='wget $JAR_URL'
-		log "INFO" "$WGET_LOG"
+		curl --silent -O $JAR_URL
+	elif [ $WGET_INSTALLED -eq 1 ]; then
+		wget -q $JAR_URL
 	else
 		log "FATAL" "Unable to download the JAR file!  Need either CURL or WGET installed!"
 		exit 2
 	fi
 }
+
+# Downloads the latest Minecraft Server Snapshot JAR.  First downloads the Snapshot
+# URL, then using the URL downloads the Snapshot JAR.
+downloadSnapshotJar() {
+	log "INFO" "Downloading the latest Minecraft Server Snapshot Jar"
+	checkCurlInstalled
+	# Download using curl
+	if [ $CURL_INSTALLED -eq 1 ]; then
+		log "INFO" "Downloading the latest Snapshot URL"
+		curl --silent -O $SNAPSHOT_URL
+		if [ -f $SS_URL_FILE ]; then
+			source $SS_URL_FILE
+			log "INFO" "Downloading Snapshot Jar"
+			curl --silent -O $SS_URL
+		else 
+			log "ERROR" "Could not download the Snapshot URL.  Aborting Update."
+			exit 3
+		fi
+	# Download using wget
+	elif [ $WGET_INSTALLED -eq 1 ]; then
+		log "INFO" "Downloading the latest Snapshot URL"
+		wget -q $SNAPSHOT_URL
+		if [ -f $SS_URL_FILE ]; then
+			source $SS_URL_FILE
+			log "INFO" "Downloading Snapshot Jar"
+			wget -q $SS_URL
+		else 
+			log "ERROR" "Could not download the Snapshot URL.  Aborting Update."
+			exit 3
+		fi
+	else
+		log "FATAL" "Unable to download the JAR file!  Need either CURL or WGET installed!"
+		exit 2
+	fi
+}
+
 
 
 # The initalizing function.  Is called when the script is ran from a new directory.
@@ -179,6 +224,8 @@ do_init() {
 
 	if [ $USE_SNAPSHOTS == "y" ] || [ $USE_SNAPSHOTS == "Y" ]; then
 		USE_SNAPSHOTS=1
+	else 
+		USE_SNAPSHOTS=0
 	fi
 
 	echo "The script will now download the latest Minecraft Server build."
