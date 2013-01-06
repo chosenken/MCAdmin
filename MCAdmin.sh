@@ -22,6 +22,7 @@ USE_GIT=0
 makeSettings () {
 	echo "DEBUG=0
 LOGFILE='MCAdmin.log'
+GIT_BACKUP_MSG='Game Backup'
 USE_SNAPSHOTS=0
 USE_GIT=0" > $SETTINGS
 }
@@ -30,6 +31,7 @@ USE_GIT=0" > $SETTINGS
 updateSettings() {
 	echo "DEBUG=0
 LOGFILE='MCAdmin.log'
+GIT_BACKUP_MSG=$GIT_BACKUP_MSG
 USE_SNAPSHOTS=$USE_SNAPSHOTS
 USE_GIT=$USE_GIT" > $SETTINGS
 }
@@ -64,6 +66,7 @@ log () {
 	fi
 }
 
+# Checks if curl is installed
 checkCurlInstalled() {
 	if command -v curl >/dev/null; then
 		log "INFO" "Curl is installed"
@@ -75,6 +78,7 @@ checkCurlInstalled() {
 	fi
 }
 
+# Checks if wget is installed
 checkWgetInstalled() {
 	if command -v wget >/dev/null; then
 		log "INFO" "wget is installed"
@@ -185,11 +189,59 @@ downloadSnapshotJar() {
 	fi
 }
 
+startServer() {
 
+}
+
+stopServer() {
+
+}
+
+saveWorld() {
+
+}
+
+viewServer() {
+
+}
+
+gitBackup() {
+	log "INFO" "Performing Git Backup"
+	if [ $USE_GIT -eq 1 ]; then
+		if [ -f $GIT_SETTINGS ]; then
+			while read line; do
+				git add $line
+			done < $GIT_SETTINGS
+			NOW=`date "+%m-%d-%Y %H:%M:%S"`
+			git commit -m "$GIT_BACKUP_MSG - $NOW"
+		else
+			log "ERROR" "Git Settings file is missing."
+		fi
+	else
+		log "ERROR" "Attempted to backup with Git, but Git is not configured!"
+	fi
+}
+
+setupGit() {
+	initGit
+}
+
+# Print the usage information
+printUsage () {
+	echo "Usage:  MCAdmin [option]"
+	echo "	help, h 	print this help."
+	echo "	start		Starts the Minecraft Server if it is not already running."
+	echo "	stop		Stops the Minecraft Server if it is running."
+	echo "	save 		Forces the Minecraft Server to Save."
+	echo "	view 		Connects to the Screen running the Minecraft Server."
+	echo "	git 		Save the game to the Git repository.  Must have configured to use Git."
+	echo "	useGit 		Configures MCAdmin to start using Git."
+}
 
 # The initalizing function.  Is called when the script is ran from a new directory.
 # Initalizes the script and sets up the server.
 do_init() {
+	clear
 	echo "Welcome to MCAdmin, the (somewhat) simple Minecraft Command Line Admin tool!"
 	echo "We just need to go through a quick setup here with some questions."
 	echo ""
@@ -229,10 +281,21 @@ do_init() {
 	fi
 
 	echo "The script will now download the latest Minecraft Server build."
+	echo ""
 	downloadJar
 
 	# Update the settings file now that we are down initializing the server
 	updateSettings
+
+	if [ $USE_GIT -eq 1 ]; then
+		echo "Git has been enabled.  You can set up a cron job to run the git backup"
+		echo "at set interavls.  Use the following as an example for running git"
+		echo "backup every hour."
+		PWD=pwd
+		echo "* */1 * * * $pwd/MCadmin.sh git"
+	fi
+
+	echo "Setup complete!"
 
 }
 # ------- End Functions ------
@@ -252,3 +315,4 @@ fi
 if [ $DO_INIT -eq 1 ]; then
 	do_init
 fi
+
