@@ -314,5 +314,32 @@ fi
 # Check if we need to set up for the first time
 if [ $DO_INIT -eq 1 ]; then
 	do_init
+	exit 0
 fi
+
+# Parse the options now
+case "$1" in
+	"help")
+	
+	;;
+	"start")
+
+	;;
+	"stop")
+
+	;;
+	"save")
+
+	;;
+	"view")
+
+	;;
+	"git")
+
+	;;
+	"useGit")
+
+	;;
+	*) printUsage; exit 1;;
+esac
 
