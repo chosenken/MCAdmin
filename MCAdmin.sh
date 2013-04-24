@@ -255,9 +255,10 @@ stopServer() {
 	if  pgrep -u $USERNAME -f $MC_JAR > /dev/null
 	then
 		log "INFO" "$MC_JAR coming down"
-		screen -p 0 -S $SCREEN_NAME -X eval 'stuff \"say SERVER SHUTTING DOWN IN $SHUTDOWN_TIMER SECONDS.\"\015'
+		screen -p 0 -S $SCREEN_NAME -X eval "stuff 'say SERVER SHUTTING DOWN IN $SHUTDOWN_TIMER SECONDS'\015"
+		log "DEBUG" "Shutdown Sleep"
 		sleep $SHUTDOWN_TIMER
-		screen -p 0 -S $SCREEN_NAME -X eval 'stuff \"stop\"\015'
+		screen -p 0 -S $SCREEN_NAME -X eval 'stuff stop\015'
 		sleep 10
 	else
 		echo "Error!  $MC_JAR is not running."
@@ -279,7 +280,7 @@ saveWorld() {
 	then
 		echo "Saving world..."
 		log "INFO" "Saving world"
-		screen -p 0 -S $SCREEN_NAME -X eval 'stuff \"save-all\"\015'
+		screen -p 0 -S $SCREEN_NAME -X eval 'stuff save-all\015'
 		sleep 10
 	else
 		echo "Error!  Cannot save as server is not running."
@@ -334,8 +335,8 @@ printUsage () {
 	echo "	view 		Connects to the Screen running the Minecraft Server."
 	echo "	git 		Save the game to the Git repository.  Must have configured to use Git."
 	echo "	useGit 		Configures MCAdmin to start using Git."
-	echo "  init        Initialized MCAdmin.  If a configuration already exists, asks if you"
-	echo "              want to overwrite it."
+	echo "	init		Initialized MCAdmin.  If a configuration already exists, asks if you"
+	echo "			want to overwrite it."
 }
 
 # The initalizing function.  Is called when the script is ran from a new directory.
@@ -448,10 +449,23 @@ reinit() {
 				do_init
 			fi
 		fi
-			
+	else
+		do_init
 	fi
 }
 # ------- End Functions ------
+
+case "$1" in
+	"help")
+		printUsage
+		exit 0
+	;;
+	"h")
+		printUsage
+		exit 0
+	;;
+	*)
+esac
 
 # Check if we need to set up for the first time
 if [ ! -f $SETTINGS ] ; then
@@ -468,12 +482,6 @@ source $SETTINGS
 
 # Parse the options now
 case "$1" in
-	"help")
-		printUsage
-	;;
-	"h")
-		printUsage
-	;;
 	"start")
 		startServer
 	;;
@@ -481,7 +489,7 @@ case "$1" in
 		stopServer
 	;;
 	"save")
-		saveServer
+		saveWorld
 	;;
 	"view")
 		viewServer
@@ -496,6 +504,8 @@ case "$1" in
 	"init")
 		reinit
 	;;
-	*) printUsage; exit 1;;
+	*)
+		printUsage
+		exit 1
+	;;
 esac
-
