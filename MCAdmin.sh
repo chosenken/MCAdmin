@@ -6,7 +6,7 @@ DEBUG=1
 # ------ Constants ------
 SETTINGS='.mcadmin'
 GIT_SETTINGS='.mcadmin.git'
-JAR_URL='https://s3.amazonaws.com/MinecraftDownload/launcher/minecraft_server.jar'
+JAR_URL='https://s3.amazonaws.com/Minecraft.Download/versions/1.6.2/minecraft_server.1.6.2.jar'
 SNAPSHOT_URL='https://raw.github.com/chosenken/MCAdmin/master/snapshotURL.sh'
 SS_URL_FILE='snapshotURL.sh'
 USERNAME=`whoami`
@@ -21,15 +21,15 @@ LOGFILE='MCAdmin.log'
 GIT_BACKUP_MSG="Game Backup"
 SCREEN_NAME='minecraft'
 SHUTDOWN_TIMER=10
-MC_JAR='minecraft_server.jar'
+#MC_JAR='minecraft_server.jar'
+MC_JAR='craftbukkit-beta.jar'
+MC_BACKUP='minecraft_server.tar'
 OPTIONS='nogui'
 MAXHEAP=1024
-MINHEAP=512
+MINHEAP=1024
 HISTORY=1024
 CPU_COUNT=1
-INVOCATION="java -Xmx\${MAXHEAP}M -Xms\${MINHEAP}M -XX:+UseConcMarkSweepGC \
--XX:+CMSIncrementalPacing -XX:ParallelGCThreads=\$CPU_COUNT -XX:+AggressiveOpts \
--jar \$MC_JAR \$OPTIONS"
+INVOCATION="java -Xmx\${MAXHEAP}M -Xms\${MINHEAP}M -jar \$MC_JAR \$OPTIONS"
 # ------ Functions ------
 
 # Creates the settings file with default settings
@@ -182,7 +182,7 @@ downloadMainJar() {
 	log "INFO" "Downloading the latest Minecraft Server Jar"
 	checkCurlInstalled
 	if [ $CURL_INSTALLED -eq 1 ]; then
-		curl --silent -O $JAR_URL
+		curl --silent -o $MC_JAR $JAR_URL
 	elif [ $WGET_INSTALLED -eq 1 ]; then
 		wget -q $JAR_URL
 	else
@@ -226,6 +226,13 @@ downloadSnapshotJar() {
 	fi
 }
 
+updateMinecraft() {
+	if [ -f $MC_JAR ]; then
+		tar -cf $MC_BACKUP $MC_JAR
+	fi
+	downloadJar
+}
+
 startServer() {
 	log "DEBUG" "Entered startServer"
 	log "DEBUG" "Attempting to start $MC_JAR as $USERNAME"
@@ -237,6 +244,7 @@ startServer() {
 		log "DEBUG" "Invocing: $INVOCATION"
 		echo "Starting $MC_JAR"
 		screen -h $HISTORY -dmLS $SCREEN_NAME $INVOCATION
+		#$INVOCATION &> minecraft_server.log & 
 		sleep 1
 		if  pgrep -u $USERNAME -f $MC_JAR > /dev/null
 		then
@@ -255,10 +263,10 @@ stopServer() {
 	if  pgrep -u $USERNAME -f $MC_JAR > /dev/null
 	then
 		log "INFO" "$MC_JAR coming down"
-		screen -p 0 -S $SCREEN_NAME -X eval "stuff 'say SERVER SHUTTING DOWN IN $SHUTDOWN_TIMER SECONDS'\015"
+		screen -S $SCREEN_NAME -X eval "stuff 'say SERVER SHUTTING DOWN IN $SHUTDOWN_TIMER SECONDS'\015"
 		log "DEBUG" "Shutdown Sleep"
 		sleep $SHUTDOWN_TIMER
-		screen -p 0 -S $SCREEN_NAME -X eval 'stuff stop\015'
+		screen -S $SCREEN_NAME -X eval 'stuff stop\015'
 		sleep 10
 	else
 		echo "Error!  $MC_JAR is not running."
@@ -280,8 +288,8 @@ saveWorld() {
 	then
 		echo "Saving world..."
 		log "INFO" "Saving world"
-		screen -p 0 -S $SCREEN_NAME -X eval 'stuff save-all\015'
-		sleep 10
+		screen -S $SCREEN_NAME -X eval 'stuff save-all\015'
+		sleep 4
 	else
 		echo "Error!  Cannot save as server is not running."
 		log "ERROR" "Server is not running, cannot save."
@@ -503,6 +511,9 @@ case "$1" in
 	;;
 	"init")
 		reinit
+	;;
+	"update")
+		updateMinecraft
 	;;
 	*)
 		printUsage
